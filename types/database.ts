@@ -34,6 +34,9 @@ export type Database = {
               "send_welcome": boolean,"unsubscribe_token": string
             }[]
                            },
+"mark_welcome_sent":
+{ Args: { "token": string }; Returns: undefined
+                           },
 "unsubscribe_waitlist":
 { Args: { "token": string }; Returns: undefined
                            }
