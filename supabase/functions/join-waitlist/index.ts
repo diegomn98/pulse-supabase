@@ -3,10 +3,9 @@ import { requireEnv } from "../_shared/env.ts";
 import { createRateLimiter } from "../_shared/rate-limit.ts";
 import { sendEmail } from "../_shared/resend.ts";
 import { createSecretClient } from "../_shared/supabase.ts";
-import { renderWelcomeEmail } from "../_shared/welcome-email.ts";
+import { renderWelcomeEmail, unsubscribeUrl } from "../_shared/welcome-email.ts";
 import { createHandler } from "./handler.ts";
 
-const supabaseUrl = requireEnv("SUPABASE_URL");
 const resendApiKey = requireEnv("RESEND_API_KEY");
 const emailFrom = requireEnv("EMAIL_FROM");
 const siteUrl = requireEnv("SITE_URL");
@@ -35,20 +34,15 @@ Deno.serve(createHandler({
   },
 
   async sendWelcomeEmail(email, token) {
-    const unsubscribeUrl = new URL("/functions/v1/unsubscribe", supabaseUrl);
-    unsubscribeUrl.searchParams.set("token", token);
-    const { subject, html, text } = renderWelcomeEmail({
-      email,
-      siteUrl,
-      unsubscribeUrl: unsubscribeUrl.href,
-    });
+    const unsubscribe = unsubscribeUrl(siteUrl, token);
+    const { subject, html, text } = renderWelcomeEmail({ email, siteUrl, unsubscribeUrl: unsubscribe });
     await sendEmail(resendApiKey, {
       from: emailFrom,
       to: email,
       subject,
       html,
       text,
-      headers: { "List-Unsubscribe": `<${unsubscribeUrl.href}>` },
+      headers: { "List-Unsubscribe": `<${unsubscribe}>` },
     });
   },
 }));

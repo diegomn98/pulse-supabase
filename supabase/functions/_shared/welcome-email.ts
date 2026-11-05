@@ -41,6 +41,12 @@ const HERO_BARS = [
   { height: 105, color: "#f2922f" },
 ];
 
+export function unsubscribeUrl(siteUrl: string, token: string): string {
+  const url = new URL("/baja", siteUrl);
+  url.searchParams.set("token", token);
+  return url.href;
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")

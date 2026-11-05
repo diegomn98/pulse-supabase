@@ -1,10 +1,10 @@
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1.0.19";
-import { renderWelcomeEmail } from "./welcome-email.ts";
+import { renderWelcomeEmail, unsubscribeUrl } from "./welcome-email.ts";
 
 const input = {
   email: "ana+<b>@example.com",
   siteUrl: "https://pulse.test",
-  unsubscribeUrl: "https://api.pulse.test/functions/v1/unsubscribe?token=abc&x=1",
+  unsubscribeUrl: "https://pulse.test/baja?token=abc&x=1",
 };
 
 Deno.test("renders subject, copy and links in the HTML version", () => {
@@ -18,7 +18,7 @@ Deno.test("renders subject, copy and links in the HTML version", () => {
   }
   assert(html.includes('href="https://pulse.test/privacidad"'));
   assert(html.includes('href="https://pulse.test/terminos"'));
-  assert(html.includes('href="https://api.pulse.test/functions/v1/unsubscribe?token=abc&amp;x=1"'));
+  assert(html.includes('href="https://pulse.test/baja?token=abc&amp;x=1"'));
 });
 
 Deno.test("escapes the email address in the HTML version", () => {
@@ -38,4 +38,11 @@ Deno.test("renders a plain text version with every link", () => {
   assert(text.includes("Términos: https://pulse.test/terminos"));
   assert(text.includes(`Darme de baja: ${input.unsubscribeUrl}`));
   assert(!/<[a-z]/i.test(text.replace(input.email, "")));
+});
+
+Deno.test("builds the unsubscribe link to the landing page", () => {
+  const token = "6f1c2a4e-3b7d-4f7e-9a51-2c8e0d4b7a10";
+
+  assertEquals(unsubscribeUrl("https://pulse.test", token), `https://pulse.test/baja?token=${token}`);
+  assertEquals(unsubscribeUrl("http://localhost:4321/", token), `http://localhost:4321/baja?token=${token}`);
 });
