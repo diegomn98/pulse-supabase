@@ -1,6 +1,6 @@
 # Estado
 
-Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas y sus tests pgTAP. Todavía no hay Edge Functions. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
+Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas, las funciones RPC `public.join_waitlist` y `public.unsubscribe_waitlist` (solo para `service_role`) y sus tests pgTAP. Todavía no hay Edge Functions. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
 
 ## Plan por fases
 
@@ -13,6 +13,8 @@ Puesta en marcha terminada y lista de espera en curso: existe el esquema `market
 ### Fase 1 · Lista de espera
 - [x] Migración del esquema `marketing` y la tabla `waitlist` con RLS, sin exponer en la API.
 - [x] Tests pgTAP de la tabla y de que el rol anónimo no puede leer ni escribir.
+- [x] Funciones RPC `join_waitlist` y `unsubscribe_waitlist` con `execute` solo para `service_role` y sus tests ([0004](decisions/0004-acceso-a-la-lista-de-espera-por-rpc.md)).
+- [ ] Función RPC para registrar `welcome_sent_at` tras enviar el correo (la necesita `join-waitlist`).
 - [ ] Edge Function `join-waitlist` con validación, campo trampa, límite de peticiones y tests.
 - [ ] Plantilla del correo «Ya estás en la lista» (HTML y texto plano).
 - [ ] Envío con el proveedor de correo (necesita decidirlo).
@@ -40,7 +42,6 @@ Puesta en marcha terminada y lista de espera en curso: existe el esquema `market
 - Proveedor de correo y remitente.
 - Doble opt-in o alta directa en la lista de espera.
 - Página de confirmación de baja.
-- Cómo acceden `join-waitlist` y `unsubscribe` a `marketing.waitlist`: al no estar el esquema expuesto, el cliente de Supabase con la clave secreta no llega por la API REST. Opciones: conexión directa a Postgres desde la función o funciones RPC en un esquema expuesto con `execute` solo para `service_role`.
 - Estrategia de sincronización y forma de guardar rutinas y resultados.
 
 ## Riesgos
