@@ -54,18 +54,19 @@ docs/
 
 ### Funciones RPC
 
-Las Edge Functions acceden a `marketing.waitlist` a través de dos funciones en `public` ([0004](decisions/0004-acceso-a-la-lista-de-espera-por-rpc.md)), llamadas con el cliente de Supabase y una clave secreta (`supabase.rpc(...)`).
+Las Edge Functions acceden a `marketing.waitlist` a través de tres funciones en `public` ([0004](decisions/0004-acceso-a-la-lista-de-espera-por-rpc.md)), llamadas con el cliente de Supabase y una clave secreta (`supabase.rpc(...)`).
 
-- Ambas son `language sql`, `security invoker` y con `search_path = ''`: se ejecutan con los permisos de quien llama.
+- Las tres son `language sql`, `security invoker` y con `search_path = ''`: se ejecutan con los permisos de quien llama.
 - Permisos: `execute` revocado explícitamente a `public`, `anon` y `authenticated`; solo `service_role` puede ejecutarlas. Con la clave publicable la API responde 401 (`42501`) y las funciones no aparecen en su esquema OpenAPI.
 
 | Función | Argumentos | Devuelve | Comportamiento |
 |---|---|---|---|
 | `join_waitlist` | `email text`, `platforms text[]`, `source text` | Una fila `{ send_welcome boolean, unsubscribe_token uuid }` | Normaliza el email (`lower(btrim(...))`). Si no existe, lo inserta. Si existe, sustituye las plataformas, conserva el `source` original y pone `unsubscribed_at` a nulo. La respuesta es igual exista o no el email. `send_welcome` es `true` mientras `welcome_sent_at` sea nulo; `unsubscribe_token` sirve para el enlace de baja del correo. |
+| `mark_welcome_sent` | `token uuid` | Nada (204 por la API) | Pone `welcome_sent_at = now()` si el token existe y estaba vacío. Una segunda llamada o un token desconocido no cambian nada ni dan error. |
 | `unsubscribe_waitlist` | `token uuid` | Nada (204 por la API) | Marca `unsubscribed_at = now()` si el token existe y no estaba dado de baja. Un token desconocido o una segunda baja no cambian nada ni dan error. |
 
 - Las restricciones de la tabla siguen aplicando: plataformas o `source` fuera de los valores permitidos devuelven error (`23514`), así que la Edge Function valida antes de llamar.
-- Tests: `supabase/tests/waitlist_rpc_test.sql`. Demuestran que `public`, `anon` y `authenticated` no pueden ejecutarlas, que `service_role` sí, y cubren alta nueva, email existente, reactivación, correo ya enviado y baja con token válido, repetido y desconocido.
+- Tests: `supabase/tests/waitlist_rpc_test.sql`. Demuestran que `public`, `anon` y `authenticated` no pueden ejecutarlas, que `service_role` sí, y cubren alta nueva, email existente, reactivación, correo ya enviado y baja con token válido, repetido y desconocido. `supabase/tests/mark_welcome_sent_test.sql` hace lo mismo con `mark_welcome_sent`: permisos y token válido, repetido y desconocido.
 
 ### Edge Function `join-waitlist`
 
@@ -75,7 +76,7 @@ Las Edge Functions acceden a `marketing.waitlist` a través de dos funciones en 
   1. Valida el email y las plataformas. Si el campo trampa viene relleno, responde éxito sin guardar.
   2. Limita las peticiones por IP y por email.
   3. Llama a `join_waitlist`: si el email no existe, lo inserta; si existe, actualiza las plataformas y, si estaba dado de baja, lo reactiva. No revela si ya existía.
-  4. Si `send_welcome` es `true`, envía el correo de bienvenida con el enlace de baja (`unsubscribe_token`) y guarda `welcome_sent_at` (falta la función que lo registra; ver `docs/STATUS.md`).
+  4. Si `send_welcome` es `true`, envía el correo de bienvenida con el enlace de baja (`unsubscribe_token`) y llama a `mark_welcome_sent` con ese token para guardar `welcome_sent_at`.
 - **Respuestas:**
 
 | Caso | Código | Cuerpo |

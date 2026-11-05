@@ -1,6 +1,6 @@
 # Estado
 
-Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas, las funciones RPC `public.join_waitlist` y `public.unsubscribe_waitlist` (solo para `service_role`) y sus tests pgTAP. Todavía no hay Edge Functions. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
+Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas, las funciones RPC `public.join_waitlist`, `public.mark_welcome_sent` y `public.unsubscribe_waitlist` (solo para `service_role`) y sus tests pgTAP. Todavía no hay Edge Functions. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
 
 ## Plan por fases
 
@@ -14,7 +14,7 @@ Puesta en marcha terminada y lista de espera en curso: existe el esquema `market
 - [x] Migración del esquema `marketing` y la tabla `waitlist` con RLS, sin exponer en la API.
 - [x] Tests pgTAP de la tabla y de que el rol anónimo no puede leer ni escribir.
 - [x] Funciones RPC `join_waitlist` y `unsubscribe_waitlist` con `execute` solo para `service_role` y sus tests ([0004](decisions/0004-acceso-a-la-lista-de-espera-por-rpc.md)).
-- [ ] Función RPC para registrar `welcome_sent_at` tras enviar el correo (la necesita `join-waitlist`).
+- [x] Función RPC `mark_welcome_sent` para registrar `welcome_sent_at` tras enviar el correo, con sus tests.
 - [ ] Edge Function `join-waitlist` con validación, campo trampa, límite de peticiones y tests.
 - [ ] Plantilla del correo «Ya estás en la lista» (HTML y texto plano).
 - [ ] Envío con el proveedor de correo (necesita decidirlo).
