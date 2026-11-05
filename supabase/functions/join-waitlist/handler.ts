@@ -1,4 +1,5 @@
 import { corsHeaders } from "../_shared/cors.ts";
+import { clientIp, describeError, failure, isRecord, json, readJsonBody } from "../_shared/http.ts";
 import type { RateLimiter } from "../_shared/rate-limit.ts";
 
 const PLATFORMS = ["ios", "android", "web"] as const;
@@ -29,52 +30,8 @@ export interface Dependencies {
   sendWelcomeEmail(email: string, unsubscribeToken: string): Promise<void>;
 }
 
-type ErrorCode =
-  | "forbidden_origin"
-  | "method_not_allowed"
-  | "invalid_input"
-  | "rate_limited"
-  | "server_error";
-
-function json(status: number, body: object, headers: Record<string, string> = {}): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...headers, "Content-Type": "application/json" },
-  });
-}
-
-function failure(status: number, error: ErrorCode, headers?: Record<string, string>): Response {
-  return json(status, { ok: false, error }, headers);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function isOneOf<T extends string>(values: readonly T[], value: unknown): value is T {
   return typeof value === "string" && (values as readonly string[]).includes(value);
-}
-
-function clientIp(req: Request): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
-}
-
-function describeError(error: unknown): string {
-  return error instanceof Error ? error.message : "unknown error";
-}
-
-async function readBody(req: Request): Promise<unknown> {
-  const declaredLength = Number(req.headers.get("content-length") ?? 0);
-  if (declaredLength > MAX_BODY_BYTES) return undefined;
-
-  const raw = await req.text();
-  if (new TextEncoder().encode(raw).length > MAX_BODY_BYTES) return undefined;
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return undefined;
-  }
 }
 
 function isHoneypotFilled(body: Record<string, unknown>): boolean {
@@ -124,7 +81,7 @@ export function createHandler(deps: Dependencies): (req: Request) => Promise<Res
     if (req.method !== "POST") return failure(405, "method_not_allowed", cors);
     if (!deps.ipLimiter.hit(clientIp(req))) return failure(429, "rate_limited", cors);
 
-    const body = await readBody(req);
+    const body = await readJsonBody(req, MAX_BODY_BYTES);
     if (!isRecord(body)) return failure(400, "invalid_input", cors);
     if (isHoneypotFilled(body)) return json(200, { ok: true }, cors);
 
