@@ -1,6 +1,6 @@
 # Estado
 
-Puesta en marcha terminada: proyecto local de Supabase con la CLI y Deno como dependencias de desarrollo, sin migraciones ni funciones todavía. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
+Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas y sus tests pgTAP. Todavía no hay Edge Functions. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
 
 ## Plan por fases
 
@@ -11,8 +11,8 @@ Puesta en marcha terminada: proyecto local de Supabase con la CLI y Deno como de
 - [x] Supabase local arrancando (`npm run db:start`) y `npm run check` en verde.
 
 ### Fase 1 · Lista de espera
-- [ ] Migración del esquema `marketing` y la tabla `waitlist` con RLS, sin exponer en la API.
-- [ ] Tests pgTAP de la tabla y de que el rol anónimo no puede leer ni escribir.
+- [x] Migración del esquema `marketing` y la tabla `waitlist` con RLS, sin exponer en la API.
+- [x] Tests pgTAP de la tabla y de que el rol anónimo no puede leer ni escribir.
 - [ ] Edge Function `join-waitlist` con validación, campo trampa, límite de peticiones y tests.
 - [ ] Plantilla del correo «Ya estás en la lista» (HTML y texto plano).
 - [ ] Envío con el proveedor de correo (necesita decidirlo).
@@ -40,6 +40,7 @@ Puesta en marcha terminada: proyecto local de Supabase con la CLI y Deno como de
 - Proveedor de correo y remitente.
 - Doble opt-in o alta directa en la lista de espera.
 - Página de confirmación de baja.
+- Cómo acceden `join-waitlist` y `unsubscribe` a `marketing.waitlist`: al no estar el esquema expuesto, el cliente de Supabase con la clave secreta no llega por la API REST. Opciones: conexión directa a Postgres desde la función o funciones RPC en un esquema expuesto con `execute` solo para `service_role`.
 - Estrategia de sincronización y forma de guardar rutinas y resultados.
 
 ## Riesgos

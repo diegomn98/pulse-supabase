@@ -45,8 +45,12 @@ docs/
 | `unsubscribe_token` | `uuid` | Único, por defecto `gen_random_uuid()` |
 | `unsubscribed_at` | `timestamptz` | Nulo mientras siga apuntado |
 
+- Restricciones: `email = lower(btrim(email))` y entre 3 y 254 caracteres; `platforms <@ {ios, android, web}`; `source in (hero, footer)`.
+- `updated_at` lo mantiene el trigger `waitlist_set_updated_at` con la función `marketing.set_updated_at()`.
 - RLS activado y sin políticas: solo las funciones, con una clave secreta, leen y escriben.
-- El esquema `marketing` no se expone en la API.
+- Permisos: `anon` y `authenticated` no tienen `usage` en el esquema ni privilegios en la tabla; `service_role` tiene `usage` y `select`, `insert` y `update`.
+- El esquema `marketing` no se expone en la API, así que tampoco aparece en `types/database.ts`.
+- Tests: `supabase/tests/marketing_waitlist_test.sql`. Demuestran que `anon` y `authenticated` no pueden leer ni escribir, y que RLS bloquea a `anon` aunque se le concedieran privilegios por error.
 
 ### Edge Function `join-waitlist`
 
