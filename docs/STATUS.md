@@ -1,6 +1,6 @@
 # Estado
 
-Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas, las funciones RPC `public.join_waitlist`, `public.mark_welcome_sent` y `public.unsubscribe_waitlist` (solo para `service_role`) y sus tests pgTAP. Todavía no hay Edge Functions. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
+Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas, las funciones RPC `public.join_waitlist`, `public.mark_welcome_sent` y `public.unsubscribe_waitlist` (solo para `service_role`) y sus tests pgTAP. La Edge Function `join-waitlist` está hecha y probada en local: valida, filtra el campo trampa, limita peticiones, da de alta con la RPC y envía el correo «Ya estás en la lista» con Resend. Falta la función `unsubscribe`. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
 
 ## Plan por fases
 
@@ -15,15 +15,18 @@ Puesta en marcha terminada y lista de espera en curso: existe el esquema `market
 - [x] Tests pgTAP de la tabla y de que el rol anónimo no puede leer ni escribir.
 - [x] Funciones RPC `join_waitlist` y `unsubscribe_waitlist` con `execute` solo para `service_role` y sus tests ([0004](decisions/0004-acceso-a-la-lista-de-espera-por-rpc.md)).
 - [x] Función RPC `mark_welcome_sent` para registrar `welcome_sent_at` tras enviar el correo, con sus tests.
-- [ ] Edge Function `join-waitlist` con validación, campo trampa, límite de peticiones y tests.
-- [ ] Plantilla del correo «Ya estás en la lista» (HTML y texto plano).
-- [ ] Envío con el proveedor de correo (necesita decidirlo).
+- [x] Edge Function `join-waitlist` con validación, campo trampa, límite de peticiones y tests.
+- [x] Plantilla del correo «Ya estás en la lista» (HTML y texto plano).
+- [x] Envío con Resend ([0005](decisions/0005-correo-con-resend.md)); si falla, el alta se mantiene y `welcome_sent_at` queda vacío.
 - [ ] Edge Function `unsubscribe` (necesita el texto de la página de confirmación).
-- [ ] Tipos regenerados y contrato actualizado en `docs/ARCHITECTURE.md`.
+- [x] Tipos regenerados y contrato actualizado en `docs/ARCHITECTURE.md`.
+- [ ] Datos legales del pie del correo: sustituir [NOMBRE O RAZÓN SOCIAL] y [DIRECCIÓN].
+- [ ] Reintento de los correos de bienvenida que fallaron (`welcome_sent_at` vacío) sin esperar a una nueva alta, si hace falta.
 
 ### Fase 2 · Entornos remotos
 - [ ] Proyectos de desarrollo y producción creados por Diego.
-- [ ] Secretos configurados y despliegue de migraciones y funciones (con autorización en cada paso).
+- [ ] Dominio de envío verificado en Resend en la región de Irlanda (`eu-west-1`) y `EMAIL_FROM` con ese dominio.
+- [ ] Secretos configurados (`ALLOWED_ORIGINS`, `SITE_URL`, `RESEND_API_KEY`, `EMAIL_FROM`) y despliegue de migraciones y funciones (con autorización en cada paso).
 
 ### Fase 3 · Datos de la app (cuando la web funcione en local)
 - [ ] Modelo de datos y estrategia de sincronización (ADR).
@@ -39,7 +42,7 @@ Puesta en marcha terminada y lista de espera en curso: existe el esquema `market
 
 ## Decisiones abiertas
 
-- Proveedor de correo y remitente.
+- Remitente definitivo (dominio y dirección de `EMAIL_FROM`).
 - Doble opt-in o alta directa en la lista de espera.
 - Página de confirmación de baja.
 - Estrategia de sincronización y forma de guardar rutinas y resultados.
@@ -47,3 +50,6 @@ Puesta en marcha terminada y lista de espera en curso: existe el esquema `market
 ## Riesgos
 
 - La CLI de Supabase en local necesita Docker instalado y arrancado.
+- El límite de peticiones de `join-waitlist` vive en memoria de cada instancia: no se comparte entre instancias ni sobrevive a un reinicio. Si hay abuso, habrá que llevarlo a la base de datos.
+- En local, `SUPABASE_URL` dentro de las funciones es una dirección interna de Docker, así que el enlace «Darme de baja» de los correos enviados en local no abre desde el navegador. En remoto apunta al proyecto.
+- Supabase reescribe a `text/plain` las respuestas `text/html` de las Edge Functions a peticiones `GET`, así que `unsubscribe` no puede devolver su página de confirmación como HTML; habrá que decidir cómo mostrarla (por ejemplo, redirigiendo a una página de la landing).
