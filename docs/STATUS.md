@@ -1,14 +1,14 @@
 # Estado
 
-Repositorio recién creado. Contiene la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`). Todavía no hay proyecto de Supabase.
+Puesta en marcha terminada: proyecto local de Supabase con la CLI y Deno como dependencias de desarrollo, sin migraciones ni funciones todavía. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
 
 ## Plan por fases
 
-### Fase 0 · Puesta en marcha
-- [ ] `package.json` con la CLI de Supabase como dependencia de desarrollo y los scripts de `CLAUDE.md` › Comandos.
-- [ ] `supabase init`, `config.toml` y `.gitignore` (sin `supabase/functions/.env`).
-- [ ] `supabase/functions/.env.example` con los nombres de los secretos.
-- [ ] Supabase local arrancando (`npm run db:start`) y `npm run check` en verde.
+### Fase 0 · Puesta en marcha ✓
+- [x] `package.json` con la CLI de Supabase como dependencia de desarrollo y los scripts de `CLAUDE.md` › Comandos.
+- [x] `supabase init`, `config.toml` y `.gitignore` (sin `supabase/functions/.env`).
+- [x] `supabase/functions/.env.example` con los nombres de los secretos.
+- [x] Supabase local arrancando (`npm run db:start`) y `npm run check` en verde.
 
 ### Fase 1 · Lista de espera
 - [ ] Migración del esquema `marketing` y la tabla `waitlist` con RLS, sin exponer en la API.
