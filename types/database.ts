@@ -29,7 +29,14 @@ export type Database = {
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "join_waitlist":
+{ Args: { "email": string,"platforms": (string)[],"source": string }; Returns: {
+              "send_welcome": boolean,"unsubscribe_token": string
+            }[]
+                           },
+"unsubscribe_waitlist":
+{ Args: { "token": string }; Returns: undefined
+                           }
           }
           Enums: {
             [_ in never]: never
