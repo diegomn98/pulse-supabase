@@ -1,6 +1,6 @@
 # Estado
 
-Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas, las funciones RPC `public.join_waitlist`, `public.mark_welcome_sent` y `public.unsubscribe_waitlist` (solo para `service_role`) y sus tests pgTAP. La Edge Function `join-waitlist` está hecha y probada en local: valida, filtra el campo trampa, limita peticiones, da de alta con la RPC y envía el correo «Ya estás en la lista» con Resend. Falta la función `unsubscribe`. Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
+Puesta en marcha terminada y lista de espera en curso: existe el esquema `marketing` con la tabla `waitlist`, RLS sin políticas, las funciones RPC `public.join_waitlist`, `public.mark_welcome_sent` y `public.unsubscribe_waitlist` (solo para `service_role`) y sus tests pgTAP. La Edge Function `join-waitlist` está hecha y probada en local: valida, filtra el campo trampa, limita peticiones, da de alta con la RPC y envía el correo «Ya estás en la lista» con Resend. La Edge Function `unsubscribe` también está hecha y probada en local: la llama la página `/baja` de la landing con el token del enlace del correo ([0006](decisions/0006-baja-desde-la-landing.md)). Hay un test pgTAP que exige RLS en todas las tablas de `public` y `marketing`. Contiene también la documentación, las reglas compartidas y sus primeras fixtures (`interval-total` y `streak`).
 
 ## Plan por fases
 
@@ -18,7 +18,8 @@ Puesta en marcha terminada y lista de espera en curso: existe el esquema `market
 - [x] Edge Function `join-waitlist` con validación, campo trampa, límite de peticiones y tests.
 - [x] Plantilla del correo «Ya estás en la lista» (HTML y texto plano).
 - [x] Envío con Resend ([0005](decisions/0005-correo-con-resend.md)); si falla, el alta se mantiene y `welcome_sent_at` queda vacío.
-- [ ] Edge Function `unsubscribe` (necesita el texto de la página de confirmación).
+- [x] Edge Function `unsubscribe` con `POST { token }`, CORS, límite de peticiones y tests; enlace «Darme de baja» a `SITE_URL/baja?token=…` ([0006](decisions/0006-baja-desde-la-landing.md)).
+- [ ] Página `/baja` en `pulse-landing` (texto y diseño) que llame a `unsubscribe`, preferiblemente tras pulsar un botón.
 - [x] Tipos regenerados y contrato actualizado en `docs/ARCHITECTURE.md`.
 - [ ] Datos legales del pie del correo: sustituir [NOMBRE O RAZÓN SOCIAL] y [DIRECCIÓN].
 - [ ] Reintento de los correos de bienvenida que fallaron (`welcome_sent_at` vacío) sin esperar a una nueva alta, si hace falta.
@@ -44,12 +45,11 @@ Puesta en marcha terminada y lista de espera en curso: existe el esquema `market
 
 - Remitente definitivo (dominio y dirección de `EMAIL_FROM`).
 - Doble opt-in o alta directa en la lista de espera.
-- Página de confirmación de baja.
 - Estrategia de sincronización y forma de guardar rutinas y resultados.
 
 ## Riesgos
 
 - La CLI de Supabase en local necesita Docker instalado y arrancado.
-- El límite de peticiones de `join-waitlist` vive en memoria de cada instancia: no se comparte entre instancias ni sobrevive a un reinicio. Si hay abuso, habrá que llevarlo a la base de datos.
-- En local, `SUPABASE_URL` dentro de las funciones es una dirección interna de Docker, así que el enlace «Darme de baja» de los correos enviados en local no abre desde el navegador. En remoto apunta al proyecto.
-- Supabase reescribe a `text/plain` las respuestas `text/html` de las Edge Functions a peticiones `GET`, así que `unsubscribe` no puede devolver su página de confirmación como HTML; habrá que decidir cómo mostrarla (por ejemplo, redirigiendo a una página de la landing).
+- El límite de peticiones de `join-waitlist` y `unsubscribe` vive en memoria de cada instancia: no se comparte entre instancias ni sobrevive a un reinicio. Si hay abuso, habrá que llevarlo a la base de datos.
+- El enlace «Darme de baja» depende de que la landing esté publicada en `SITE_URL` y de que su origen esté en `ALLOWED_ORIGINS`.
+- Sin baja en un clic (RFC 8058): Gmail y Yahoo la exigen a quien envía correos masivos. No afecta al correo de bienvenida, pero sí afectaría a un envío del lanzamiento a toda la lista.

@@ -11,7 +11,7 @@ supabase/
   functions/
     join-waitlist/
     unsubscribe/
-    _shared/             código común de las funciones (validación, CORS, correo)
+    _shared/             código común de las funciones (HTTP, CORS, límite de peticiones, cliente de Supabase, correo)
   tests/                 tests pgTAP
   seed.sql               datos de ejemplo solo para local
   functions/.env.example nombres de los secretos propios, sin valores
@@ -97,21 +97,46 @@ Las Edge Functions acceden a `marketing.waitlist` a través de tres funciones en
 | Error de la base de datos | 500 | `{ "ok": false, "error": "server_error" }` |
 
 - **CORS:** `Access-Control-Allow-Origin` con el origen exacto de la petición si está en `ALLOWED_ORIGINS`; cabeceras permitidas `apikey`, `authorization`, `content-type` y `x-client-info`.
-- **Variables de entorno:** `ALLOWED_ORIGINS` (orígenes separados por comas), `SITE_URL` (base de los enlaces de Privacidad y Términos), `RESEND_API_KEY` y `EMAIL_FROM` (remitente, por ejemplo `PULSE <hola@dominio>`). `SUPABASE_URL` y `SUPABASE_SECRET_KEYS` (se usa la clave `default`) las aporta Supabase; no se usan las claves heredadas. Si falta alguna, la función no arranca.
+- **Variables de entorno:** `ALLOWED_ORIGINS` (orígenes separados por comas), `SITE_URL` (base de los enlaces de Privacidad, Términos y «Darme de baja»), `RESEND_API_KEY` y `EMAIL_FROM` (remitente, por ejemplo `PULSE <hola@dominio>`). `SUPABASE_URL` y `SUPABASE_SECRET_KEYS` (se usa la clave `default`) las aporta Supabase; no se usan las claves heredadas. Si falta alguna, la función no arranca.
 - **Correo:** Resend con `fetch`, sin SDK, con 10 s de tiempo máximo ([0005](decisions/0005-correo-con-resend.md)). En local, `EMAIL_FROM` es `onboarding@resend.dev`, que solo entrega al email de la cuenta de Resend; a cualquier otro destinatario Resend lo rechaza y se aplica el caso de fallo del proveedor.
 - **Tests:** `supabase/functions/join-waitlist/handler_test.ts` (alta válida, inválidos, campo trampa, duplicado, límite por IP y por email, fallo del proveedor, fallo de `mark_welcome_sent` y de la base de datos, CORS y método). En `_shared/` hay tests del cliente de Resend, del limitador y de la plantilla. Usan `jsr:@std/assert`, solo en los tests.
 
 ### Edge Function `unsubscribe`
 
-- `GET ?token=<uuid>`. Llama a `unsubscribe_waitlist`: si el token existe, marca `unsubscribed_at` y responde con una página breve de confirmación. Si no existe, la misma página, sin revelar nada.
-- Texto y aspecto de la página: por decidir.
+La llama la página `/baja` de la landing, que recibe el token en el enlace del correo ([0006](decisions/0006-baja-desde-la-landing.md)).
+
+- **Código:** `supabase/functions/unsubscribe/`, con la misma separación que `join-waitlist`: `handler.ts` con la lógica y sus dependencias inyectadas, `index.ts` con el cliente de Supabase y las variables de entorno.
+- **Llamada:** pública, con la clave publicable en la cabecera `apikey` y `verify_jwt = false` (`[functions.unsubscribe]` en `config.toml`).
+- **Petición:** `POST` con JSON `{ "token": string }`, como máximo 512 bytes. `token` es el `unsubscribe_token` (UUID); se aceptan espacios alrededor y mayúsculas.
+- **Comportamiento, en orden:**
+  1. Rechaza orígenes que no estén en `ALLOWED_ORIGINS` (también si falta la cabecera `Origin`) y métodos distintos de `POST` y `OPTIONS`.
+  2. Limita por IP (primera dirección de `x-forwarded-for`): 20 peticiones cada 10 minutos, en memoria de cada instancia como en `join-waitlist`.
+  3. Valida que `token` sea un UUID.
+  4. Llama a `unsubscribe_waitlist`. Responde lo mismo si el token existe, si no existe o si ya estaba dado de baja.
+- **Logs:** solo el código de error de la RPC; nunca el token.
+- **Respuestas:**
+
+| Caso | Código | Cuerpo |
+|---|---|---|
+| Baja correcta, token desconocido o baja repetida | 200 | `{ "ok": true }` |
+| Preflight `OPTIONS` desde un origen permitido | 204 | Vacío, con cabeceras CORS |
+| Cuerpo inválido, token sin formato de UUID o cuerpo de más de 512 bytes | 400 | `{ "ok": false, "error": "invalid_input" }` |
+| Origen no permitido o sin `Origin` | 403 | `{ "ok": false, "error": "forbidden_origin" }` |
+| Método distinto de `POST` | 405 | `{ "ok": false, "error": "method_not_allowed" }` |
+| Demasiadas peticiones | 429 | `{ "ok": false, "error": "rate_limited" }` |
+| Error de la base de datos | 500 | `{ "ok": false, "error": "server_error" }` |
+
+- **CORS:** el mismo que `join-waitlist`.
+- **Variables de entorno:** `ALLOWED_ORIGINS`, que debe incluir el origen de la landing. `SUPABASE_URL` y `SUPABASE_SECRET_KEYS` (clave `default`) las aporta Supabase. Si falta alguna, la función no arranca.
+- **Tests:** `supabase/functions/unsubscribe/handler_test.ts` (token válido, normalizado, desconocido y repetido, entradas inválidas, límite por IP, fallo de la base de datos, CORS, origen y método).
+- **Local:** la pasarela de Supabase local responde ella misma a los preflight `OPTIONS` con `Access-Control-Allow-Origin: *`, antes de llegar a la función. La petición `POST` sí pasa por la función y se rechaza con 403 si el origen no está permitido.
 
 ### Correo «Ya estás en la lista»
 
 - Diseño: `../pulse-imagenes/02-web/29-correos-verificar-cuenta-recuperar-contrasena-y-lista-de-espera/03-correo-ya-estas-en-la-lista.png`.
 - Textos: «Ya estás en la lista» · «¡Gracias por apuntarte! Te escribiremos en cuanto PULSE esté disponible para iOS, Android y web, para que seas de los primeros en probarla.» · los tres tipos (Intervalos «Con voz guía», Running «Con GPS», Fuerza «Series y pesos») · «Solo te escribiremos para avisarte del lanzamiento. Nada de spam.» · «Un abrazo, El equipo de PULSE» · pie con [NOMBRE O RAZÓN SOCIAL] · [DIRECCIÓN] y enlaces a Privacidad, Términos y «Darme de baja».
 - Plantilla en `supabase/functions/_shared/welcome-email.ts`: HTML compatible con clientes de correo (tablas y estilos en línea, fuentes del sistema, degradados con color de respaldo) y versión de texto plano. Asunto «Ya estás en la lista» y el email del destinatario escapado en el pie.
-- Enlaces: Privacidad y Términos a `SITE_URL/privacidad` y `SITE_URL/terminos`; «Darme de baja» a `SUPABASE_URL/functions/v1/unsubscribe?token=<unsubscribe_token>`, también en la cabecera `List-Unsubscribe`.
+- Enlaces: Privacidad y Términos a `SITE_URL/privacidad` y `SITE_URL/terminos`; «Darme de baja» a `SITE_URL/baja?token=<unsubscribe_token>` (página de la landing, [0006](decisions/0006-baja-desde-la-landing.md)), también en la cabecera `List-Unsubscribe`. Sin `List-Unsubscribe-Post`: no hay baja en un clic según RFC 8058.
 - No incluye «Ver en el navegador» porque no hay versión web del correo.
 
 ## Datos de la app (más adelante)
