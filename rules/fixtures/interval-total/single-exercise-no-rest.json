@@ -1,0 +1,14 @@
+{
+  "rule": "interval-total",
+  "description": "Con un solo ejercicio por ronda no hay ningún descanso",
+  "input": {
+    "exercises": 1,
+    "rounds": 3,
+    "workSeconds": 60,
+    "restSeconds": 20,
+    "preparationSeconds": 10
+  },
+  "expected": {
+    "totalSeconds": 210
+  }
+}

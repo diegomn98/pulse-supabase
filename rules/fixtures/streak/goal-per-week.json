@@ -1,0 +1,27 @@
+{
+  "rule": "streak",
+  "description": "Cada semana se evalúa con su propio objetivo",
+  "input": {
+    "weeks": [
+      {
+        "start": "2026-10-19",
+        "sessions": 3,
+        "goal": 3
+      },
+      {
+        "start": "2026-10-26",
+        "sessions": 4,
+        "goal": 5
+      }
+    ],
+    "currentWeek": {
+      "start": "2026-11-02",
+      "sessions": 0,
+      "goal": 4
+    }
+  },
+  "expected": {
+    "current": 0,
+    "best": 1
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "rule": "streak",
+  "description": "La mejor racha sale del historial aunque la actual sea más corta",
+  "input": {
+    "weeks": [
+      {
+        "start": "2026-09-07",
+        "sessions": 4,
+        "goal": 4
+      },
+      {
+        "start": "2026-09-14",
+        "sessions": 4,
+        "goal": 4
+      },
+      {
+        "start": "2026-09-21",
+        "sessions": 5,
+        "goal": 4
+      },
+      {
+        "start": "2026-09-28",
+        "sessions": 4,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-05",
+        "sessions": 4,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-12",
+        "sessions": 6,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-19",
+        "sessions": 2,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-26",
+        "sessions": 4,
+        "goal": 4
+      }
+    ],
+    "currentWeek": {
+      "start": "2026-11-02",
+      "sessions": 1,
+      "goal": 4
+    }
+  },
+  "expected": {
+    "current": 1,
+    "best": 6
+  }
+}

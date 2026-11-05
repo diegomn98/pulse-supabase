@@ -1,0 +1,37 @@
+{
+  "rule": "streak",
+  "description": "Tres semanas cumplidas seguidas y la semana en curso a medias: la racha es 3",
+  "input": {
+    "weeks": [
+      {
+        "start": "2026-10-05",
+        "sessions": 2,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-12",
+        "sessions": 4,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-19",
+        "sessions": 5,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-26",
+        "sessions": 4,
+        "goal": 4
+      }
+    ],
+    "currentWeek": {
+      "start": "2026-11-02",
+      "sessions": 1,
+      "goal": 4
+    }
+  },
+  "expected": {
+    "current": 3,
+    "best": 3
+  }
+}

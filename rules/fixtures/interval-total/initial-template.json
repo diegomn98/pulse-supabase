@@ -1,0 +1,14 @@
+{
+  "rule": "interval-total",
+  "description": "Plantilla inicial: 7 ejercicios, 2 rondas, 30 s de trabajo, 20 s de descanso y 20 s de preparación por ronda suman 700 s",
+  "input": {
+    "exercises": 7,
+    "rounds": 2,
+    "workSeconds": 30,
+    "restSeconds": 20,
+    "preparationSeconds": 20
+  },
+  "expected": {
+    "totalSeconds": 700
+  }
+}

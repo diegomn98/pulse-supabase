@@ -1,0 +1,32 @@
+{
+  "rule": "streak",
+  "description": "Si la última semana cerrada no se cumplió, la racha actual es 0",
+  "input": {
+    "weeks": [
+      {
+        "start": "2026-10-12",
+        "sessions": 4,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-19",
+        "sessions": 4,
+        "goal": 4
+      },
+      {
+        "start": "2026-10-26",
+        "sessions": 3,
+        "goal": 4
+      }
+    ],
+    "currentWeek": {
+      "start": "2026-11-02",
+      "sessions": 0,
+      "goal": 4
+    }
+  },
+  "expected": {
+    "current": 0,
+    "best": 2
+  }
+}
