@@ -423,3 +423,6 @@ enabled = true
 
 [functions.join-waitlist]
 verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
